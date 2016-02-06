@@ -2,12 +2,17 @@
 
 class header extends control
 {
-	public function test() {
-		echo '<p><<<<<<<<<<<<<<<<<<<<</p>';
-		echo '<p>'.get_class($this).'->'.__function__.'</p>';
+	public function test($var = 0) {
 		$this->view->world = $this->model->get_world();
+		$this->view->hehe = 'haha';
 
-		echo '<p><<<<<'.count($this->modules).'<<<<<<<<<<<<<<<</p>';
+		echo '<p>'.$var.'</p>';
+	}
+
+	public function save_draft($draft) {
+        $draft = json_decode($draft);
+		echo 'md = '.$draft->md.'\\n';
+		echo 'html = '.$draft->html.'\\n';
 	}
 
 	public function render() {

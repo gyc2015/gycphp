@@ -61,6 +61,9 @@ class App
 		return $this->modules[$mname];
 	}
 
+	private $cur_mname;
+	private $cur_func;
+	private $cur_params;
 	/*
 	 * load_module - 装载模块
 	 *
@@ -103,12 +106,59 @@ class App
         $this->db = new Mysql_DB($config->db->host, $config->db->db_name, $config->db->user, $config->db->passwd);
 	}
 
+    # 动作解析器
+    public $parser;
+
 	/*
-	 * parse_uri - 解析URI
+	 * parse_action - 解析action
 	 */
-	public function parse_uri() {
-		echo '<p>'.__CLASS__.'->'.__FUNCTION__.'</p>';
-		echo '<p>URI:'.$this->URI.'</p>';
+	public function parse_action() {
+        $mname = $this->parser->acquire_module();
+        $func = $this->parser->acquire_func();
+        $params = $this->parser->acquire_params();
+
+		$this->load_action($mname, $func, $params);
+	}
+
+    /*
+     * load_action - 装载动作
+     *
+     * $mname: 模块名称
+     * $func: 函数名称
+     * $params: 函数参数列表 顺序相关
+     */
+	public function load_action($mname, $func, $params = array()) {
+		$this->cur_mname = $mname;
+		$this->cur_func = $func;
+		$this->cur_params = $params;
+
+		$this->load_module($mname);	
+	}
+
+
+	/*
+	 * just_do_it - 执行预装载函数
+	 */
+	public function just_do_it() {
+        # 通过反射机制设置函数的参数
+        $d_params = array();
+        $method_reflection = new reflectionMethod($this->cur_mname, $this->cur_func);
+        foreach ($method_reflection->getParameters() as $param) {
+            $param_name = $param->getName();
+            if (isset($this->cur_params[$param_name])) {
+                $tmp = $this->cur_params[$param_name];
+            } else {
+                if ($param->isDefaultValueAvailable())
+                    $tmp = $param->getDefaultValue();
+                else
+                    throw new Exception("参数'".$param_name."'不能为空. file:".__FILE__." line:".__LINE__);
+            }
+            $d_params[$param_name] = $tmp;
+        }
+        $this->cur_params = $d_params;
+
+        # 加载
+        call_user_func_array(array(&$this->modules[$this->cur_mname], $this->cur_func), $this->cur_params);
 	}
 
 	/*
@@ -119,5 +169,56 @@ class App
 			$module->render();
 	}
 }
+
+abstract class RequestParser {
+    abstract public function acquire_module();
+    abstract public function acquire_func();
+    abstract public function acquire_params();
+}
+
+class GetRequestParser extends RequestParser {
+    public function acquire_module() {
+        global $config;
+        return $_GET[$config->module_prompt];
+    }
+
+    public function acquire_func() {
+        global $config;
+        return $_GET[$config->func_prompt];
+    }
+
+    public function acquire_params() {
+        global $config;
+        foreach ($_GET as $name => $value) {
+            if ($name == $config->module_prompt || $name == $config->func_prompt)
+                continue;
+            $params[$name] = $value;
+        }
+        return $params;
+    }
+}
+
+class PostRequestParser extends RequestParser {
+    public function acquire_module() {
+        global $config;
+        return $_POST[$config->module_prompt];
+    }
+
+    public function acquire_func() {
+        global $config;
+        return $_POST[$config->func_prompt];
+    }
+
+    public function acquire_params() {
+        global $config;
+        foreach ($_POST as $name => $value) {
+            if ($name == $config->module_prompt || $name == $config->func_prompt)
+                continue;
+            $params[$name] = $value;
+        }
+        return $params;
+    }
+}
+
 
 ?>

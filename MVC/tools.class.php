@@ -12,6 +12,16 @@ class tools {
         return empty($files) ? array() : $files;
     }
 
+	/*
+	 * load_configs - 装载系统配置
+	 */
+	static public function load_configs() {
+	    global $config;
+
+		$files = tools::find_files(CONFIG_PATH, "*.php");
+		foreach ($files as $file)
+			include_once($file);
+	}
     /*
      * load_lib - 装载库
      *
@@ -48,6 +58,9 @@ class tools {
             throw new Exception("在模块'".$module."'的控制文件中不存在相应的类. file:".__FILE__." line:".__LINE__);
     }
 
+	static public function echo_module_func_4_js($mname, $func) {
+		echo $config->module_prompt.'='.$mname.'&'.$config->func_prompt.'='.$func;
+	}
 }
 
 ?>

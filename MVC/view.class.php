@@ -16,9 +16,13 @@ class view
 		return $this->module->get_module_root();
 	}
 
+
 	# 构造函数
 	public function __construct(&$module) {
 		$this->module = &$module;
+
+		global $config;
+		$this->config = $config;
 	}
 
 	# html文档
